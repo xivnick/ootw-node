@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>날씨 및 코디 추천</title>
+    <!-- Chart.js & DataLabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --bg-color: #f9faff;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-radius: 12px;
+            --spacing: 16px;
+        }
+        * { box-sizing: border-box; }
+        body, html {
+            margin:0; padding:0;
+            width:100%; height:100%;
+            font-family:Arial, sans-serif;
+            background:var(--bg-color);
+            color:var(--text-color);
+            display:flex; justify-content:center; align-items:center;
+        }
+        #container {
+            width:100%; max-width:520px;
+            background:var(--card-bg);
+            border-radius:var(--border-radius);
+            box-shadow:0 4px 16px rgba(0,0,0,0.08);
+            padding:var(--spacing);
+            display:flex; flex-direction:column; gap:var(--spacing);
+        }
+        h2 { margin:0; font-size:1.5rem; text-align:center; }
+        .controls { display:flex; gap:var(--spacing); justify-content:center; }
+        button, input, select {
+            font-size:1rem; padding:0.6rem 1rem;
+            border-radius:var(--border-radius); border:1px solid #ccc;
+        }
+        button {
+            background:var(--primary-color); color:#fff; border:none;
+            cursor:pointer; transition:background 0.2s;
+        }
+        button:hover:not(:disabled) { background:#0063cc; }
+        button:disabled { background:#bbb; cursor:default; }
+        input { flex:1; border-color:#ddd; }
+        #search-results {
+            list-style:none; margin:0; padding:0;
+            max-height:10rem; overflow-y:auto;
+            border:1px solid #eee; border-radius:var(--border-radius);
+        }
+        #search-results li {
+            padding:0.75rem 1rem; cursor:pointer;
+            transition:background 0.2s;
+        }
+        #search-results li:hover { background:#f1f1f1; }
+        #location-name {
+            font-weight:bold; text-align:center;
+            font-size:1.2rem;
+        }
+        #summary {
+            background:var(--bg-color);
+            border-radius:var(--border-radius);
+            padding:var(--spacing);
+            display:flex; flex-direction:column;
+            align-items:center; gap:0.5rem;
+        }
+        .emoji-large { font-size:3rem; }
+        .summary-text { font-size:1rem; }
+        #style-options {
+            display:flex; justify-content:center; gap:var(--spacing);
+        }
+        #style-options label {
+            display:flex; align-items:center; gap:0.25rem;
+            cursor:pointer;
+        }
+        #outfit {
+            background:var(--bg-color);
+            border-radius:var(--border-radius);
+            padding:var(--spacing);
+            text-align:center;
+            font-size:1rem;
+        }
+        #chart-container {
+            background:var(--card-bg);
+            border-radius:var(--border-radius);
+            padding:var(--spacing);
+        }
+        canvas { width:100% !important; height:14rem !important; display:block; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h2>날씨 및 코디 추천</h2>
+        <div class="controls">
+            <button id="btn-loc">📍 현재 위치</button>
+            <input id="search-input" placeholder="지역 검색">
+            <button id="btn-search">🔍 검색</button>
+        </div>
+        <ul id="search-results"></ul>
+        <div id="location-name"></div>
+        <div id="summary"></div>
+        <div id="style-options">
+            <label><input type="radio" name="style" value="normal" checked> 무난</label>
+            <label><input type="radio" name="style" value="formal"> 포멀</label>
+            <label><input type="radio" name="style" value="casual"> 캐주얼</label>
+            <label><input type="radio" name="style" value="fancy"> 꾸민</label>
+        </div>
+        <div id="outfit">코디를 추천받으려면 지역을 선택해주세요.</div>
+        <div id="chart-container">
+            <canvas id="weather-chart"></canvas>
+        </div>
+    </div>
+    <script>
+        Chart.register(ChartDataLabels);
+        const btnLoc = document.getElementById('btn-loc');
+        const btnSearch = document.getElementById('btn-search');
+        const searchInput = document.getElementById('search-input');
+        const resultsEl = document.getElementById('search-results');
+        const nameEl = document.getElementById('location-name');
+        const summaryEl = document.getElementById('summary');
+        const outfitEl = document.getElementById('outfit');
+        const styleInputs = document.querySelectorAll('input[name="style"]');
+        let chart, lastForecast;
+
+        // 날씨 조회
+        async function fetchWeather(nx, ny) {
+            const d = new Date();
+            const date = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            const res = await fetch(`/weather?nx=${nx}&ny=${ny}&date=${date}`);
+            return res.json();
+        }
+
+        // 요약 생성
+        function generateSummary(forecast) {
+            const temps = forecast.map(f => Number(f.TMP));
+            const max = Math.max(...temps), min = Math.min(...temps);
+            const pops = forecast.map(f => parseInt(f.POP) || 0);
+            const popMax = Math.max(...pops);
+            let emoji='🌥️', text='오늘은 흐립니다';
+            if (popMax > 30) { emoji='🌧️'; text='오늘은 비가 올 수 있습니다'; }
+            else {
+                const sky = forecast.reduce((c,v)=>{c[v.SKY]=(c[v.SKY]||0)+1;return c;},{});
+                if ((sky['1']||0) >= (sky['3']||0) && (sky['1']||0) >= (sky['4']||0)) {
+                    emoji='☀️'; text='오늘은 맑습니다';
+                } else if ((sky['3']||0) >= (sky['4']||0)) {
+                    emoji='☁️'; text='오늘은 구름이 많습니다';
+                }
+            }
+            const summary = `${text}. 최고 ${max}°, 최저 ${min}°` +
+                (popMax>0 ? `, 강수 확률 최고 ${popMax}%입니다.` : '입니다.');
+            return {emoji, summary};
+        }
+
+        // 06시~23시 평균 기온 계산
+        function calcAvgTemp(forecast) {
+            const filtered = forecast.filter(f => {
+                const h = parseInt(f.time.slice(0,2));
+                return h >= 6 && h <= 23;
+            });
+            const temps = filtered.map(f => Number(f.TMP));
+            const sum = temps.reduce((a,b)=>a+b,0);
+            return sum / temps.length;
+        }
+
+        // 요약 렌더 및 평균 기온 저장
+        function renderSummary(forecast, name) {
+            lastForecast = forecast;
+            const { emoji, summary } = generateSummary(forecast);
+            nameEl.textContent = name;
+            summaryEl.innerHTML = `
+                <div class="emoji-large">${emoji}</div>
+                <div class="summary-text">${summary}</div>
+            `;
+            updateOutfit();
+        }
+
+        // 차트 렌더
+        function renderChart(forecast) {
+            const labels = forecast.map(f => `${f.time.slice(0,2)}시`);
+            const temps = forecast.map(f => Number(f.TMP));
+            const maxI = temps.indexOf(Math.max(...temps));
+            const minI = temps.indexOf(Math.min(...temps));
+            const buf = 2, maxT = temps[maxI], minT = temps[minI];
+            const suggestedMax = maxT + buf, suggestedMin = minT - buf;
+            const ctx = document.getElementById('weather-chart');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets:[{
+                    data: temps,
+                    borderColor: 'var(--primary-color)',
+                    tension: 0,
+                    pointRadius:4,
+                    pointBackgroundColor:'var(--primary-color)'
+                }]},
+                options: {
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    plugins:{ legend:{display:false},
+                        datalabels:{
+                            display:ctx=>ctx.dataIndex===maxI||ctx.dataIndex===minI,
+                            align:ctx=>ctx.dataIndex===maxI?'top':'bottom',
+                            anchor:ctx=>ctx.dataIndex===maxI?'end':'start',
+                            offset:6,
+                            color:ctx=>ctx.dataIndex===maxI?'red':'blue',
+                            font:{weight:'bold'},
+                            formatter:(v,ctx)=>ctx.dataIndex===maxI?`최고 ${v}°`:`최저 ${v}°`
+                        }
+                    },
+                    scales:{ x:{grid:{display:false}},
+                        y:{grid:{color:'#eee'},
+                            suggestedMin, suggestedMax
+                        }
+                    }
+                },
+                plugins:[ChartDataLabels]
+            });
+        }
+
+        // 코디 추천 호출
+        async function updateOutfit() {
+            if (!lastForecast) return;
+            const avgTemp = calcAvgTemp(lastForecast);
+            const style = document.querySelector('input[name="style"]:checked').value;
+            const res = await fetch(`/outfit?temp=${avgTemp.toFixed(1)}&style=${style}`);
+            const { outfit } = await res.json();
+            outfitEl.textContent = outfit;
+            renderChart(lastForecast);
+        }
+
+        // 날씨 표시
+        async function showWeather(nx, ny, name) {
+            const { forecast } = await fetchWeather(nx, ny);
+            console.log({forecast})
+            renderSummary(forecast, name);
+            renderChart(forecast);
+        }
+
+        // 이벤트 바인딩
+        btnLoc.addEventListener('click', () => {
+            btnLoc.disabled = true;
+            navigator.geolocation.getCurrentPosition(async pos => {
+                const { latitude:lat, longitude:lon } = pos.coords;
+                const { regions } = await fetch(`/regions?lat=${lat}&lon=${lon}`).then(r=>r.json());
+                if (regions.length) showWeather(regions[0].nx, regions[0].ny, regions[0].name);
+                btnLoc.disabled = false;
+            },()=>{ btnLoc.disabled=false; });
+        });
+
+        btnSearch.addEventListener('click', async () => {
+            const kw = searchInput.value.trim();
+            if (!kw) return;
+            btnSearch.disabled = true;
+            const { regions } = await fetch(`/regions?keyword=${kw}`).then(r=>r.json());
+            resultsEl.innerHTML = '';
+            regions.forEach(r => {
+                const li = document.createElement('li');
+                li.textContent = r.name;
+                li.onclick = () => { showWeather(r.nx, r.ny, r.name); resultsEl.innerHTML=''; };
+                resultsEl.appendChild(li);
+            });
+            btnSearch.disabled = false;
+        });
+
+        searchInput.addEventListener('keydown', e => { if (e.key==='Enter') btnSearch.click(); });
+        styleInputs.forEach(el => el.addEventListener('change', updateOutfit));
+    </script>
+</body>
+</html>

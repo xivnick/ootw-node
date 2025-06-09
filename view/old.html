@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Cold Outside? - 오늘 밖에 춥나?" />
+  <meta property="og:description" content="외투를 꺼내야 할지 망설여질 때, 비슷한 날씨에 입었던 OOTD를 확인해보세요." />
+  <meta property="og:image" content="https://is-it-cold-app.netlify.app/img/og.png" />
+  <meta property="og:url" content="https://is-it-cold-app.netlify.app" />
+
+  <title>Cold Outside?</title>
+  <!-- Pretendard 폰트 로드 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+  <style>
+    @font-face {
+      font-family: 'BMDOHYEON';
+      src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/BMDOHYEON.woff') format('woff');
+      font-weight: normal;
+      font-style: normal;
+    }
+    :root {
+      --color-primary: #5DADE2;
+      --color-secondary: #2E86C1;
+      --color-bg-light: #EAF6FF;
+      --color-bg-dark: #D0E7FC;
+      --color-accent: #F7DC6F;
+      --color-text: #1B2631;
+      --overlay-dark: rgba(0,0,0,0.3);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background: var(--color-bg-light);
+      color: var(--color-text);
+      line-height: 1.6;
+    }
+    .logo, h1, h2 { font-family: 'BMDOHYEON', sans-serif; }
+    /* 배경 및 헤더 */
+    .bg-fixed { position: fixed; inset: 0; background: url('img/cloudy-sky.jpg') center/cover no-repeat; z-index: -1; }
+    .header-bg { position: absolute; top: 0; left: 0; right: 0; height: 60px; background: #fff; z-index: 9; }
+    header {
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.8);
+      display: flex; justify-content: space-between; align-items: center;
+      height: 60px; padding: 0 2rem; z-index: 10;
+    }
+    .logo { line-height: 60px; font-size: 1.5rem; font-weight: bold; color: var(--color-secondary); margin-top: 5px }
+    .btn-reserve {
+      background: #fff; color: var(--color-text);
+      font-size: 1rem; padding: 0.75rem 1.25rem; border-radius: 4px; border: none;
+      cursor: pointer; transition: background .2s, box-shadow .2s;
+    }
+    .btn-reserve:hover { background: var(--color-primary); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
+    main { position: relative; z-index: 1;}
+    section { padding: 4rem 2rem; }
+    section:nth-child(even) { background: var(--color-bg-dark); }
+    section h2 { font-size: 1.85rem; margin-bottom: 1.5rem; text-align: center; }
+
+    /* Hero */
+    .hero { height: 50vh; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 2rem; }
+    .hero-content h1 { font-size: 2rem; color: #fff; margin-bottom: 1rem; text-shadow: 0 .2rem .4rem rgba(0,0,0,0.2); }
+    .hero-content p { font-size: 1.25rem; color: #f0f0f0; margin-bottom: 2rem; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+
+    /* Service Preview */
+    .service-preview h2 { color: var(--color-text); }
+    .weather-card { max-width: 280px; margin: 0 auto 2rem; text-align: center; }
+    .weather-card .weather-label { display: inline-block; padding: 0.25rem 0.75rem; background: #666; border-radius: 999px; font-size: 0.7rem; color: #FFF; margin-bottom: 0.5rem; }
+    .weather-card .weather-main { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem; line-height: 1.2; }
+    .weather-card .weather-icon { font-size: 2rem; }
+    .weather-card .weather-temp-large { font-size: 3rem; font-weight: bold; line-height: 1; }
+    .weather-card .weather-compare { font-size: 0.9rem; color: #333; margin-bottom: 0.5rem; }
+    .weather-card .weather-minmax { font-size: 0.875rem; color: #555; margin-bottom: 0.5rem; }
+    .weather-card .weather-note { font-size: 0.6rem; color: #555; }
+
+    .service-preview h3 { text-align: center; margin-bottom: 1rem; font-size: 1.25rem; }
+    .carousel-wrapper { display: flex; justify-content: center; max-width: 1000px; margin: 0 auto; overflow: hidden; }
+    .carousel { display: flex; width: fit-content; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 1rem; }
+    .carousel-card { position: relative; flex: 0 0 auto; width: 40vw; max-width: 240px; aspect-ratio: 9/16; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: #fff; }
+    .carousel-card img { width: 100%; height: 100%; object-fit: cover; }
+    .card-label { position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.6); color: #fff; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; white-space: nowrap; }
+    .card-date { position: absolute; bottom: 0.5rem; left: 0.5rem; font-weight: bold; color: #fff; font-size: 0.75rem; line-height: 1; white-space: nowrap; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .ai-note { text-align: center; font-size: 0.75rem; color: #555; margin-top: 1rem; }
+
+    /* Features & Benefits */
+    .features-benefits { padding: 4rem 2rem; }
+    .benefits-grid { display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    /* 기본적으로 5번째, 6번째 카드는 숨김 */
+    .benefits-grid > .benefit-card:nth-child(n+5) { display: none; }
+    .benefit-card { background: rgba(255,255,255,0.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 12px; padding: 2rem; text-align: center; }
+    .benefit-card .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .benefit-card h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .benefit-card p { font-size: 1rem; color: #333; }
+    /* 세 칸 이상일 때 5번째,6번째 카드 표시 */
+    @media (min-width: 848px) {
+      .benefits-grid > .benefit-card:nth-child(n+5) { display: block; }
+    }
+    .benefit-card .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .benefit-card h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .benefit-card p { font-size: 1rem; color: #333; }
+
+    /* Reserve Form */
+    #reserve-form {
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+      padding: 4rem 2rem;
+      border-radius: 0;
+    }
+    #reserve-form h2 {
+      color: #fff;
+      margin-bottom: 1.5rem;
+    }
+    #reserve-form h2 { color: #fff; }
+    .form-group {
+      max-width: 500px;
+      margin: 0 auto 1.5rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      resize: none;
+    }
+    .btn-submit {
+      background: #fff;
+      color: var(--color-secondary);
+      font-size: 1rem;
+      padding: 0 2rem;
+      border: none;
+      cursor: pointer;
+      transition: background .2s;
+      display: block;
+      margin: 0 auto 1rem;
+      border-radius: 6px;
+      height: 45px;
+      line-height: 45px;
+    }
+    /* 모바일에서 기본 배경을 primary color로 변경 */
+    @media (max-width: 768px) {
+      .btn-submit {
+        background: var(--color-secondary);
+        color: #fff;
+      }
+    }
+    .btn-submit:hover { background: var(--color-secondary); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);}
+    .benefits p { color: #fff; text-align: center; margin-bottom: .5rem; }
+
+    /* FAQ 글래스모피즘 스타일 */
+    .faq {
+      padding: 4rem 2rem;
+/*      background: var(--color-bg-dark);*/
+    }
+
+    .faq h2 {
+      font-size: 1.85rem;
+      margin-bottom: 2rem;
+      text-align: center;
+      color: var(--color-text);
+    }
+
+    .faq-item {
+      background: rgba(255,255,255,0.3);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      font-size: 1rem;
+/*      font-weight: bold;*/
+      color: var(--color-text);
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+      padding-right: 1.5rem;
+      margin-top: .2rem;
+    }
+
+    .faq-question::after {
+      content: '▼';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      transition: transform .3s;
+      color: #fff;
+    }
+
+    .faq-item.open .faq-question::after {
+      transform: translateY(-50%) rotate(180deg);
+    }
+
+    .faq-answer {
+      display: none;
+      margin-top: 0.5rem;
+      color: var(--color-text);
+      font-size: .9rem;
+      line-height: 1.4;
+      margin-top: .5rem;
+    }
+
+    footer { background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 2rem; text-align: center; font-size: .875rem; }
+    footer p { line-height: 1.6; margin-bottom: .2rem }
+    footer a { color: var(--color-primary); }
+
+    /* Privacy Modal */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 20; }
+    .modal-content { background: #fff; width: 90%; max-width: 600px; padding: 2.5rem; border-radius: 8px; position: relative; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    .modal-content h2 { margin-bottom: 1rem; font-size: 1.5rem; color: var(--color-text); }
+    .policy-body { max-height: 60vh; overflow-y: auto; font-size: 0.95rem; line-height: 1.6; padding-right: 1rem; }
+    .policy-body p { margin-bottom: 1rem; }
+    .close-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text); }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-fixed"></div>
+  <div class="header-bg"></div>
+  <header>
+    <span class="logo">Cold Outside?</span>
+    <button class="btn-reserve" id="btn-reserve">사전예약</button>
+  </header>
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-content container">
+        <h1>오늘 밖에 춥나?</h1>
+        <p>외투를 꺼내야 할지 망설여질 때, 비슷한 날씨에 입었던 OOTD를 확인해보세요.</p>
+        <button class="btn-reserve" id="hero-reserve">지금 신청하기</button>
+      </div>
+    </section>
+
+    <!-- Service Preview -->
+    <section class="service-preview container">
+      <h2>Service Preview</h2>
+      <div class="weather-card">
+        <div class="weather-label">지금 날씨</div>
+        <div class="weather-main">
+          <div class="weather-icon">☀️</div>
+          <div class="weather-temp-large">24.1°</div>
+        </div>
+        <div class="weather-compare">대체로 맑고 따뜻함</div>
+        <div class="weather-minmax">최고 27°C / 최저 13°C</div>
+        <div class="weather-note">* 위 날씨 정보는 예시로 실제와 다릅니다.</div>
+      </div>
+      <h3 class="carousel-title">비슷한 날씨의 OOTD</h3>
+      <div class="carousel-wrapper">
+        <div class="carousel">
+          <div class="carousel-card">
+            <img src="img/ootd_1.png" alt="OOTD 1">
+            <div class="card-label">🌤️ · 27°/14° · 적당</div>
+            <div class="card-date">25.04.21</div>
+          </div>
+          <div class="carousel-card">
+            <img src="img/ootd_2.png" alt="OOTD 2">
+            <div class="card-label">⛅️ · 25°/16° · 더웠음</div>
+            <div class="card-date">25.04.17</div>
+          </div>
+          <div class="carousel-card">
+            <img src="img/ootd_3.png" alt="OOTD 3">
+            <div class="card-label">🌧️ · 24°/15° · 약간 추웠음</div>
+            <div class="card-date">25.04.18</div>
+          </div>
+        </div>
+      </div>
+      <p class="ai-note">* 위 이미지는 AI로 생성되었습니다.</p>
+    </section>
+
+    <!-- Why You’ll Love Is It Cold? -->
+    <section class="features-benefits container">
+      <h2>Key Benefits</h2>
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="icon">🌡️</div>
+          <h3>온도에 맞는 옷차림 추천</h3>
+          <p>날씨와 온도에 맞는 옷차림을 추천해 드립니다.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="icon">👗</div>
+          <h3>스타일 개인화 추천</h3>
+          <p>내 선호 스타일을 반영해 최적의 코디를 제안합니다.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="icon">📅</div>
+          <h3>과거 OOTD 기록 활용</h3>
+          <p>비슷한 날씨에 입었던 내 코디를 다시 찾아볼 수 있습니다.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="icon">🔄</div>
+          <h3>일일 피드백 루프</h3>
+          <p>매일 만족도를 기록하여 추천 정확도가 높아집니다.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="icon">☔</div>
+          <h3>비 오는 날 우산 알림</h3>
+          <p>비가 올 때 외출 전 우산을 챙길 수 있도록 알려드립니다.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="icon">🔜</div>
+          <h3>추가 예정 기능</h3>
+          <p>향후 더 많은 기능이 업데이트될 예정이니 기대해 주세요.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reserve Form -->
+    <section id="reserve-form" class="container">
+      <h2>사전예약 신청</h2>
+      <div class="form-group">
+        <label for="email">이메일</label>
+        <input type="email" id="email" placeholder="your.email@example.com" required>
+      </div>
+      <div class="form-group">
+        <label for="advice">조언 / 응원</label>
+        <textarea id="advice" placeholder="옷차림에 대한 고민이나 서비스에 대한 기대를 자유롭게 적어주세요" rows="4"></textarea>
+      </div>
+      <button class="btn-submit" id="submit-btn">베타 액세스 신청하기</button>
+      <div class="benefits">
+        <p>✔ 클로즈 베타 얼리 액세스 제공</p>
+        <p>✔ 개발 업데이트 메일링</p>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq container">
+      <h2>자주 묻는 질문</h2>
+
+      <div class="faq-item">
+        <button class="faq-question">Q. 어떤 OOTD를 볼 수 있나요?</button>
+        <div class="faq-answer">
+          비슷한 날씨에 자신이 기록한 코디 사진을 확인할 수 있습니다.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Q. OOTD를 업로드하지 않으면 사용할 수 없나요?</button>
+        <div class="faq-answer">
+          간단한 옷차림 키워드들만 선택해도 날씨별 옷차림 추천을 사용할 수 있습니다.
+        </div>
+      </div>
+
+
+      <div class="faq-item">
+        <button class="faq-question">Q. 다른 사람의 OOTD도 볼 수 있나요?</button>
+        <div class="faq-answer">
+          현재는 지원하지 않지만 추후 커뮤니티 기능 추가를 고려중입니다.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Q. 오늘 춥나요?</button>
+        <div class="faq-answer">
+          서울 기준으로 요즘은 더운 것 같습니다.
+        </div>
+      </div>
+
+    </section>
+  </main>
+  <!-- Privacy Modal -->
+  <div id="policy-modal" class="modal">
+    <div class="modal-content">
+      <button class="close-btn">&times;</button>
+      <h2>개인정보 처리방침</h2>
+      <div class="policy-body">
+        <p><strong>수집 항목:</strong> 이메일</p>
+        <p><strong>이용 목적:</strong> 사전예약 안내 및 개발 업데이트 발송</p>
+        <p><strong>보관 기간:</strong> 개발 완료 또는 개발 중단 시까지, 최장 1년</p>
+        <p><strong>삭제 요청:</strong> 메일 요청 시 즉시 삭제 처리</p>
+        <p><strong>이용자 권리:</strong> 열람, 정정, 삭제 문의: xivnick@gmail.com</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>문의: xivnick@gmail.com</p>
+    <p><a href="#" id="policy-link">개인정보 처리방침</a></p>
+  </footer>
+  <div id="loading-overlay" style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  ">
+    <div style="
+      width: 50px; height: 50px;
+      border: 5px solid #fff;
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    "></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    // Scroll to form
+    document.getElementById('btn-reserve').addEventListener('click', () => document.getElementById('reserve-form').scrollIntoView({ behavior: 'smooth' }));
+    document.getElementById('hero-reserve').addEventListener('click', () => document.getElementById('reserve-form').scrollIntoView({ behavior: 'smooth' }));
+    // Privacy modal
+    const policyLink = document.getElementById('policy-link');
+    const policyModal = document.getElementById('policy-modal');
+    const closeBtn = policyModal.querySelector('.close-btn');
+    policyLink.addEventListener('click', e => { e.preventDefault(); policyModal.style.display = 'flex'; });
+    closeBtn.addEventListener('click', () => policyModal.style.display = 'none');
+    window.addEventListener('click', e => { if (e.target === policyModal) policyModal.style.display = 'none'; });
+  </script>
+  <script>
+    document.querySelectorAll('.faq-question').forEach(q => {
+      q.addEventListener('click', () => {
+        const ans = q.nextElementSibling;
+        ans.style.display = (ans.style.display === 'block') ? 'none' : 'block';
+      });
+    });
+  </script>
+  <script>
+    let ip = null;
+    function getIP(res) { ip = res.ip; }
+  </script>
+  <script src="https://jsonip.com?format=jsonp&callback=getIP"></script>
+  <script>
+    function getCookieValue(name) {
+      const parts = ("; " + document.cookie).split("; " + name + "=");
+      if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+    function setCookieValue(name, value, days) {
+      let expires = "";
+      if (days) {
+        const d = new Date();
+        d.setTime(d.getTime() + days*24*60*60*1000);
+        expires = "; expires=" + d.toUTCString();
+      }
+      document.cookie = name + "=" + value + expires + "; path=/";
+    }
+    function getUVfromCookie() {
+      const existing = getCookieValue("user");
+      if (existing) return existing;
+      const hash = Math.random().toString(36).substring(2,8).toUpperCase();
+      setCookieValue("user", hash, 180);
+      return hash;
+    }
+    const getFormatDate = () => {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth()+1).padStart(2,'0');
+      const d = String(now.getDate()).padStart(2,'0');
+      const hh = String(now.getHours()).padStart(2,'0');
+      const mm = String(now.getMinutes()).padStart(2,'0');
+      const ss = String(now.getSeconds()).padStart(2,'0');
+      return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+    };
+  </script>
+  <script>
+    let startTime;
+    document.addEventListener('DOMContentLoaded', () => {
+      startTime = Date.now();
+    });
+
+    const addrScript = 'https://script.google.com/macros/s/AKfycbxeKowdT_rQW52Satz5QuqNetn31wq_Dh9cZV4huKl15lrnbiRtVfK7Ahr14nyBDrDBtg/exec'; // 실제 스크립트 URL
+
+    // const x = new URLSearchParams(location.search).get("utm")
+    // console.log(x);
+
+    // 방문 트래킹
+    document.addEventListener('DOMContentLoaded', () => {
+      const payload = {
+        id: getUVfromCookie(),
+        landingUrl: window.location.host,
+        ip: ip,
+        referer: document.referrer || null,
+        time_stamp: getFormatDate(),
+        utm: new URLSearchParams(location.search).get("utm") || "direct",
+        device: /Mobi|Android/i.test(navigator.userAgent)? "mobile":"desktop"
+      };
+      axios.get(`${addrScript}?action=insert&table=visitor&data=${JSON.stringify(payload)}`)
+        .then(res => {})
+        .catch(err => console.error('axios 실패', err));
+    });
+
+    const loadingEl = document.getElementById('loading-overlay');
+
+    function showLoading() { loadingEl.style.display = 'flex'; }
+    function hideLoading() { loadingEl.style.display = 'none'; }
+
+    // 폼 제출
+    document.getElementById("submit-btn").addEventListener("click", () => {
+      
+      showLoading();
+
+      const email = document.getElementById("email").value.trim();
+      const advice = document.getElementById("advice").value.trim();
+      const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+      if (!email || !validEmail(email)) {
+        alert("이메일을 다시 확인해주세요.");
+
+        hideLoading();
+        return;
+      }
+      const formData = {
+        id: getUVfromCookie(),
+        email,
+        advice
+      };
+      axios.get(`${addrScript}?action=insert&table=form&data=${JSON.stringify(formData)}`)
+        .then(res => {
+          // console.log('폼 제출 성공', res);
+          hideLoading();
+          alert("신청이 완료되었습니다. 감사합니다.");
+          document.getElementById("email").value = "";
+          document.getElementById("advice").value = "";
+        })
+        .catch(err => {
+          console.error('폼 제출 실패', err);
+          hideLoading();
+          alert("오류가 발생했습니다. 다시 시도해주세요.");
+        });
+    });
+
+	  const INTERVAL_MS = 10 * 1000;      // 15초
+	  const MAX_DURATION_MS = 90 * 1000; // 2분
+
+		function sendHeartbeat() {
+	    const elapsed = Date.now() - startTime;
+
+	    if (elapsed > MAX_DURATION_MS) {
+	      clearInterval(timerId);
+	      return;
+	    }
+
+	    // payload 생성
+	    const payload = {
+	      id: getUVfromCookie(),
+	      dwell_time: Math.floor(elapsed/1000),
+	      timestamp: getFormatDate()
+	    };
+	    const query = `?action=insert&table=dwell&data=${encodeURIComponent(JSON.stringify(payload))}`;
+
+	    // axios.get으로 전송
+	    axios.get(addrScript + query)
+	      .then(res => {})
+	      .catch(err => {console.error(err)});
+	  }
+
+	  // 5) 30초마다 하트비트 호출
+	  const timerId = setInterval(sendHeartbeat, INTERVAL_MS);
+
+	  // 6) 언로드 시 마지막 전송 & 타이머 해제
+	  window.addEventListener('beforeunload', () => {
+	    sendHeartbeat();
+	    clearInterval(timerId);
+	  });
+  </script>
+
+</body>
+</html>

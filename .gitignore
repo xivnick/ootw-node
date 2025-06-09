@@ -1,0 +1,8 @@
+# Node modules
+node_modules/
+
+# Mac OS metadata
+.DS_Store
+
+# Environment variables
+.env
