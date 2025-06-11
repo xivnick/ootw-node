@@ -1,5 +1,6 @@
 // index.js
 require('dotenv').config();
+process.env.TZ = 'Asia/Seoul';
 
 const express = require('express');
 const path = require('path');
