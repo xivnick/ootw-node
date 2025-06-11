@@ -266,7 +266,7 @@
   <div class="header-bg"></div>
   <header>
     <span class="logo">OOTW</span>
-    <button class="btn-reserve" id="btn-reserve">사전예약</button>
+    <button class="btn-reserve" id="btn-reserve" onclick="window.location.href='http://pf.kakao.com/_Zyxhrn'">체험하기</button>
   </header>
   <main>
     <!-- Hero -->
@@ -448,7 +448,7 @@
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script>
     // Scroll to form
-    document.getElementById('btn-reserve').addEventListener('click', () => document.getElementById('reserve-form').scrollIntoView({ behavior: 'smooth' }));
+    // document.getElementById('btn-reserve').addEventListener('click', () => document.getElementById('reserve-form').scrollIntoView({ behavior: 'smooth' }));
     document.getElementById('hero-reserve').addEventListener('click', () => document.getElementById('reserve-form').scrollIntoView({ behavior: 'smooth' }));
     // Privacy modal
     const policyLink = document.getElementById('policy-link');

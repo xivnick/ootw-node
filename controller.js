@@ -369,6 +369,7 @@ exports.postChatbot = async (req, res, next) => {
 
 		    	if(ootds.length > 0) {
 		    		kakaoResponse.addOutput(new kakao.SimpleText({}, '비슷한 날씨의 OOTD를 확인하세요.'))
+		    		kakaoResponse.addOutput(carousel);
 		    	}
 
 		    	for(const ootd of ootds) {
@@ -387,7 +388,6 @@ exports.postChatbot = async (req, res, next) => {
 		    	}
 		    }
 
-		    kakaoResponse.addOutput(carousel);
 
 			kakaoResponse.addQuickReplyMessage('지역 변경');
 			kakaoResponse.addQuickReplyMessage('OOTD 업로드');
