@@ -36,8 +36,91 @@ const getBaseDateTime = (dateStr) => {
     };
 };
 
+const getRecentDates = () => {
+  const now = new Date();
+  const weekdays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+  const dates = [];
+
+  for (let i = 0; i < 3; i++) {
+    // 오늘(now)에서 i일만큼 뺀 날짜 객체 생성
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+
+    const date = {};
+
+    {
+        const month = d.getMonth() + 1;      // JavaScript의 getMonth()는 0~11
+        const day   = d.getDate();
+        const week  = weekdays[d.getDay()]; // 0(일) ~ 6(토)
+
+        date.display = `${month}월 ${day}일 (${week})`;
+    }
+
+    {
+        const year  = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0'); // 1월→'01'
+        const day   = String(d.getDate()).padStart(2, '0');      // 1일→'01'
+
+        date.YYYYMMDD = `${year}${month}${day}`;
+    }
+
+    dates.push(date);
+
+  }
+
+  return { dates };
+}
+
+const generateWeatherInfo = (forecast) => {
+    const now = new Date();
+    const currentHour = String(now.getHours()).padStart(2, '0');
+    const currentTime = `${currentHour}00`; // "0000" ~ "2300"
+
+    const closest = forecast.find(item => item.time === currentTime);
+
+    // 2) PTY 우선, 없으면 SKY 코드로
+    const pty = +closest.PTY;
+    let icon = '';
+    if ([1,2,4].includes(pty)) icon = '🌧️';
+    else if (pty === 3) icon = '❄️';
+    else {
+        switch (closest.SKY) {
+            case '1': icon = '☀️'; break;
+            case '3': icon = '⛅️'; break;
+            case '4': icon = '☁️'; break;
+            default:  icon = '🌥️';
+        }
+    }
+
+    // 3) 온도 통계
+    const temps = forecast.map(f=>+f.TMP);
+    const avgTemp = (temps.reduce((a,b)=>a+b,0)/temps.length).toFixed(1);
+    const maxTemp = Math.max(...temps);
+    const minTemp = Math.min(...temps);
+    const currentTemp = (+closest.TMP).toFixed(1);
+
+    // 4) 최고 강수확률
+    const popMax = Math.max(...forecast.map(f=>parseInt(f.POP,10)||0));
+
+    // 5) 요약 텍스트
+    const summary = `최고 ${maxTemp}°C / 최저 ${minTemp}°C` + (popMax>0 ? ` · 강수 확률 ${popMax}%` : '');
+
+    // 반환
+    return { icon, currentTemp, popMax, maxTemp, minTemp, summary };
+}
+
+const compareTemp = (temp, tempToday) => {
+  const diff = temp - tempToday;
+  if (diff > 0)  return `오늘보다 ${diff}°C ↑`;
+  if (diff < 0)  return `오늘보다 ${-diff}°C ↓`;
+  return '오늘과 같음';
+}
+
 module.exports = {
 	toRad,
 	distance,
 	getBaseDateTime,
+    getRecentDates,
+    generateWeatherInfo,
+    compareTemp,
 }

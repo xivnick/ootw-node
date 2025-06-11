@@ -7,7 +7,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const controller = require('./controller');
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 app.use('/img', express.static(path.join(__dirname, 'static/img')));
 
@@ -15,10 +16,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'view', 'new.html'));
 });
 
-app.get('/weather', controller.getWeather);
-app.get('/regions', controller.getRegions);
-app.get('/outfit', controller.getOutfit);
+const controller = require('./controller');
 
+app.get('/api/weather', controller.getWeather);
+app.get('/api/regions', controller.getRegions);
+app.get('/api/outfit', controller.getOutfit);
+app.post('/api/chatbot', controller.postChatbot);
 
 app.use((req, res, next) => {
 

@@ -255,6 +255,10 @@
     #preview-app #outfit { background:var(--color-bg-light); border-radius:var(--radius); padding:var(--spacing); text-align:center; font-size:1rem; margin-bottom:var(--spacing); }
     #preview-app #chart-container { background:#fff; border-radius:var(--radius); padding:var(--spacing); }
     #preview-app canvas { width:100% !important; height:14rem !important; }
+    #demo .box { background:var(--color-bg-light); border-radius:var(--radius); padding:var(--spacing); text-align:center; font-size:1rem; margin-bottom:var(--spacing); }
+    #demo button { margin-top:20px ;padding:0.75rem 1.25rem; border:none; border-radius:4px; cursor:pointer; transition:background .2s; background:#f9e000; color:#000;font-size: 1rem; }
+    #demo button:hover { background:#fff; color:var(--color-text); box-shadow:0 4px 12px rgba(0,0,0,0.2);
+      font-size: 1rem;  }
   </style>
 </head>
 <body>
@@ -275,7 +279,7 @@
     </section>
 
     <!-- Service Preview -->
-    <<section id="preview-app" class="service-preview container">
+    <section id="preview-app" class="service-preview container">
       <h2>Service Preview</h2>
       <div class="controls">
         <button @click="getLocation">📍 현재 위치</button>
@@ -299,10 +303,18 @@
           <input type="radio" name="style" :value="opt.value" v-model="selectedStyle"> {{ opt.label }}
         </label>
       </div>
-      <div id="outfit" v-if="outfit">{{ outfit }}</div>
+      <div id="outfit" v-if="outfit" v-html="outfit"></div>
       <div id="chart-container" v-if="chartData">
         <canvas id="weather-chart"></canvas>
       </div>
+      <div id="demo" style="margin-top: 30px">
+        <h2>OOTD Demo</h2>
+        <div class="box">
+          <div>아래 카카오톡 채널에서 비슷한 날씨의 OOTD 보기를 포함한 실제 OOTW 서비스를 체험해볼 수 있습니다!
+          </div>
+          <button onclick="window.location.href='http://pf.kakao.com/_Zyxhrn'">🔗 OOTW 카카오톡 채널 바로가기</button>
+      </div>
+
     </section>
 
     <!-- Why You’ll Love Is It Cold? -->
@@ -605,7 +617,7 @@
       }},
       mounted() {
         // 페이지 로드되면 /regions 호출 → 첫 번째 지역 자동 렌더
-        fetch('/regions')
+        fetch('/api/regions')
           .then(r => r.json())
           .then(({ regions }) => {
             if (regions.length > 0) {
@@ -617,7 +629,7 @@
         async getLocation() {
           navigator.geolocation.getCurrentPosition(async pos => {
             const { latitude: lat, longitude: lon } = pos.coords;
-            const res = await fetch(`/regions?lat=${lat}&lon=${lon}`);
+            const res = await fetch(`/api/regions?lat=${lat}&lon=${lon}`);
             const { regions } = await res.json();
             this.regions = regions;
             // 한 개만 넘어오면 자동 선택
@@ -626,12 +638,12 @@
         },
         async searchRegions() {
           if(!this.query) return;
-          const res = await fetch(`/regions?keyword=${encodeURIComponent(this.query)}`);
+          const res = await fetch(`/api/regions?keyword=${encodeURIComponent(this.query)}`);
           const { regions } = await res.json(); this.regions = regions;
         },
         async selectRegion(r) {
           this.locationName = r.name; this.regions = [];
-          const res = await fetch(`/weather?nx=${r.nx}&ny=${r.ny}&date=${this.today}`);
+          const res = await fetch(`/api/weather?nx=${r.nx}&ny=${r.ny}&date=${this.today}`);
           const { forecast } = await res.json();
           this.loadWeather(forecast);
         },
@@ -641,20 +653,20 @@
           const { icon, currentTemp, popMax, summary } = this.generateWeatherInfo(forecast);
 
           this.weather = {
-            label:'지금 날씨', icon:icon, temp:temps[0].toFixed(1),
+            label:'지금 날씨', icon:icon, temp:currentTemp,
             compare:'대체로 맑고 따뜻함', max:Math.max(...temps), min:Math.min(...temps), summary
           };
           this.chartData = forecast; this.updateOutfit();
           this.$nextTick(()=> this.renderChart());
         },
         avgTemp(forecast) {
-          const arr = forecast.filter(f=>{const h=+f.time.slice(0,2);return h>=6&&h<=23;}).map(f=>+f.TMP);
+          const arr = forecast.filter(f=>{const h=+f.time.slice(0,2);return h>=9&&h<=21;}).map(f=>+f.TMP);
           return arr.reduce((a,b)=>a+b,0)/arr.length;
         },
         async updateOutfit() {
           if(!this.chartData) return;
           const avg = this.avgTemp(this.chartData).toFixed(1);
-          const res = await fetch(`/outfit?temp=${avg}&style=${this.selectedStyle}`);
+          const res = await fetch(`/api/outfit?temp=${avg}&style=${this.selectedStyle}`);
           const { outfit } = await res.json(); this.outfit = outfit;
         },
         renderChart() {
@@ -713,13 +725,12 @@
           });
         },
         generateWeatherInfo(forecast) {
-          const now = Date.now();
-          // 1) 현재 시간에 가장 가까운 데이터
-          const closest = forecast.reduce((best, cur) => {
-            const curT = new Date(cur.time).getTime();
-            const bestT = new Date(best.time).getTime();
-            return Math.abs(curT - now) < Math.abs(bestT - now) ? cur : best;
-          }, forecast[0]);
+          const now = new Date();
+          const currentHour = String(now.getHours()).padStart(2, '0');
+          const currentTime = `${currentHour}00`; // "0000" ~ "2300"
+
+          const closest = forecast.find(item => item.time === currentTime);
+
 
           // 2) PTY 우선, 없으면 SKY 코드로
           const pty = +closest.PTY;
