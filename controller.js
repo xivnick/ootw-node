@@ -346,7 +346,11 @@ exports.postChatbot = async (req, res, next) => {
 	    	const { dates } = utils.getRecentDates();
 
 		    const { forecast, error } = await weather.fetchHourlyForecast(user.nx, user.ny, dates[0].YYYYMMDD);
-		    if(error) return next(error);
+		    if(error) {
+		    	kakaoResponse.addOutput(new kakao.SimpleText({}, '날씨 서비스가 원활하지 않습니다. 잠시후 다시 시도해주세요.'))
+				return res.json(kakaoResponse);
+				kakaoResponse.addQuickReplyMessage('돌아가기');
+		    }
 
 		    const { icon, currentTemp, maxTemp, minTemp, popMax, summary } = utils.generateWeatherInfo(forecast);
 

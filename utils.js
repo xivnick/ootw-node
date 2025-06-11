@@ -38,38 +38,39 @@ const getBaseDateTime = (dateStr) => {
 
 const getRecentDates = () => {
   const now = new Date();
+  const isLate = now.getHours() >= 23;      // 23시 이후인지 여부
+  const limit  = isLate ? 2 : 3;            // 2개 또는 3개
   const weekdays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   const dates = [];
 
-  for (let i = 0; i < 3; i++) {
-    // 오늘(now)에서 i일만큼 뺀 날짜 객체 생성
+  for (let i = 0; i < limit; i++) {
     const d = new Date(now);
     d.setDate(now.getDate() - i);
 
     const date = {};
 
+    // 화면 표시용
     {
-        const month = d.getMonth() + 1;      // JavaScript의 getMonth()는 0~11
-        const day   = d.getDate();
-        const week  = weekdays[d.getDay()]; // 0(일) ~ 6(토)
-
-        date.display = `${month}월 ${day}일 (${week})`;
+      const month = d.getMonth() + 1;
+      const day   = d.getDate();
+      const week  = weekdays[d.getDay()];
+      date.display = `${month}월 ${day}일 (${week})`;
     }
 
+    // YYYYMMDD 포맷
     {
-        const year  = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0'); // 1월→'01'
-        const day   = String(d.getDate()).padStart(2, '0');      // 1일→'01'
-
-        date.YYYYMMDD = `${year}${month}${day}`;
+      const year  = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day   = String(d.getDate()).padStart(2, '0');
+      date.YYYYMMDD = `${year}${month}${day}`;
     }
 
     dates.push(date);
-
   }
 
   return { dates };
-}
+};
+
 
 const generateWeatherInfo = (forecast) => {
     const now = new Date();
